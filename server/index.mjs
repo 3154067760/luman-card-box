@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * 卢曼卡片盒 · 轻量同步服务
- * 按同步密钥存储 JSON，供多设备 merge 同步
+ * 卢曼卡片盒 · 生产服务：静态站点 + 多设备同步 API
  */
 import http from 'node:http'
 import fs from 'node:fs/promises'
@@ -11,7 +10,8 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = path.join(__dirname, 'data')
-const PORT = Number(process.env.PORT || 8788)
+const DIST = path.join(__dirname, '..', 'dist')
+const PORT = Number(process.env.PORT || 3005)
 const HOST = process.env.HOST || '0.0.0.0'
 
 const EMPTY = {
@@ -24,27 +24,37 @@ const EMPTY = {
   tombstones: [],
 }
 
-function hashKey(syncKey: string): string {
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.json': 'application/json',
+  '.ico': 'image/x-icon',
+}
+
+function hashKey(syncKey) {
   return crypto.createHash('sha256').update(syncKey).digest('hex')
 }
 
-function dataFile(syncKey: string): string {
+function dataFile(syncKey) {
   return path.join(DATA_DIR, `${hashKey(syncKey)}.json`)
 }
 
-function cors(res: http.ServerResponse) {
+function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Key')
 }
 
-async function readBody(req: http.IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = []
-  for await (const chunk of req) chunks.push(chunk as Buffer)
+async function readBody(req) {
+  const chunks = []
+  for await (const chunk of req) chunks.push(chunk)
   return Buffer.concat(chunks).toString('utf8')
 }
 
-async function handleSync(req: http.IncomingMessage, res: http.ServerResponse, syncKey: string) {
+async function handleSync(req, res, syncKey) {
   const file = dataFile(syncKey)
 
   if (req.method === 'GET') {
@@ -63,7 +73,7 @@ async function handleSync(req: http.IncomingMessage, res: http.ServerResponse, s
 
   if (req.method === 'PUT') {
     const body = await readBody(req)
-    JSON.parse(body) // validate json
+    JSON.parse(body)
     await fs.mkdir(DATA_DIR, { recursive: true })
     await fs.writeFile(file, body, 'utf8')
     cors(res)
@@ -75,6 +85,48 @@ async function handleSync(req: http.IncomingMessage, res: http.ServerResponse, s
   cors(res)
   res.writeHead(405)
   res.end('Method Not Allowed')
+}
+
+async function tryFile(filePath) {
+  try {
+    const info = await fs.stat(filePath)
+    if (info.isFile()) return filePath
+  } catch {
+    /* not found */
+  }
+  return null
+}
+
+async function sendFile(res, filePath) {
+  const data = await fs.readFile(filePath)
+  const ext = path.extname(filePath)
+  res.writeHead(200, { 'Content-Type': MIME[ext] ?? 'application/octet-stream' })
+  res.end(data)
+}
+
+async function serveStatic(req, res, pathname) {
+  const safePath = decodeURIComponent(pathname)
+  const filePath = path.join(DIST, safePath)
+
+  if (!filePath.startsWith(DIST)) {
+    res.writeHead(403)
+    res.end('Forbidden')
+    return
+  }
+
+  const found = await tryFile(filePath)
+  if (found) {
+    await sendFile(res, found)
+    return
+  }
+
+  const withIndex = await tryFile(path.join(DIST, safePath, 'index.html'))
+  if (withIndex) {
+    await sendFile(res, withIndex)
+    return
+  }
+
+  await sendFile(res, path.join(DIST, 'index.html'))
 }
 
 const server = http.createServer(async (req, res) => {
@@ -110,10 +162,20 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    try {
+      await serveStatic(req, res, url.pathname)
+    } catch {
+      res.writeHead(500)
+      res.end('Server error')
+    }
+    return
+  }
+
   res.writeHead(404)
   res.end('Not Found')
 })
 
 server.listen(PORT, HOST, () => {
-  console.log(`Zettelkasten sync server http://${HOST}:${PORT}`)
+  console.log(`Luhmann card box → http://${HOST}:${PORT}`)
 })
