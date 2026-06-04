@@ -7,12 +7,10 @@ import { NewCardPage } from './pages/NewCardPage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TreePage } from './pages/TreePage'
-import { useSeedDemo } from './hooks/useSeedDemo'
-import { useAutoSync } from './hooks/useAutoSync'
+import { useBootstrapSync } from './hooks/useBootstrapSync'
 
 function App() {
-  useSeedDemo()
-  useAutoSync()
+  useBootstrapSync()
 
   return (
     <BrowserRouter>

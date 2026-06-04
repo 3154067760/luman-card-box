@@ -20,7 +20,10 @@ echo "==> 构建前端"
 npm install
 npm run build
 
-echo "==> 启动同步服务 (PM2)"
+echo "==> 写入机器学习示例数据"
+node scripts/seed-server.mjs
+
+echo "==> 启动服务 (PM2)"
   if command -v pm2 >/dev/null; then
     pm2 describe luman-card-box >/dev/null 2>&1 && pm2 restart luman-card-box || pm2 start server/index.mjs --name luman-card-box --cwd "$APP_DIR"
     pm2 save

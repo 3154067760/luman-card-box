@@ -84,3 +84,34 @@ export async function tryAutoSync(): Promise<void> {
     })
   }
 }
+
+/** 启动时：本地为空则直接从服务器加载；否则合并同步 */
+export async function bootstrapFromServer(localEmpty: boolean): Promise<void> {
+  const base = getSyncApiBase()
+  if (!base) return
+
+  try {
+    const ok = await checkSyncHealth(base)
+    if (!ok) return
+
+    if (localEmpty) {
+      const remote = await fetchRemote(base)
+      if (remote && remote.cards.length > 0) {
+        await applySyncPayload({ ...remote, tombstones: remote.tombstones ?? [] })
+        saveSyncSettings({
+          lastSyncAt: Date.now(),
+          lastSyncStatus: 'ok',
+          lastSyncMessage: `已从服务器加载 ${remote.cards.length} 张卡片`,
+        })
+        return
+      }
+    }
+
+    await syncNow()
+  } catch (err) {
+    saveSyncSettings({
+      lastSyncStatus: 'error',
+      lastSyncMessage: err instanceof Error ? err.message : '同步失败',
+    })
+  }
+}
