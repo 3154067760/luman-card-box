@@ -57,9 +57,6 @@ export interface SyncPayload extends ExportBundle {
 }
 
 export interface SyncSettings {
-  enabled: boolean
-  syncUrl: string
-  syncKey: string
   autoSync: boolean
   lastSyncAt: number
   lastSyncStatus: 'ok' | 'error' | ''

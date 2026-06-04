@@ -49,7 +49,7 @@ export function Layout() {
       </main>
 
       <footer className="layout-footer">
-        数据保存在本机浏览器 IndexedDB · 请定期导出备份
+        数据优先保存在本机 · 设置里可「同步到服务器」备份多设备
       </footer>
     </div>
   )

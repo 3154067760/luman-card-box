@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 /**
- * 卢曼卡片盒 · 生产服务：静态站点 + 多设备同步 API
+ * 卢曼卡片盒 · 生产服务：静态站点 + 单用户同步 API（无需密钥）
  */
 import http from 'node:http'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DATA_DIR = path.join(__dirname, 'data')
+const DATA_FILE = path.join(__dirname, 'data', 'zettelkasten.json')
 const DIST = path.join(__dirname, '..', 'dist')
 const PORT = Number(process.env.PORT || 3005)
 const HOST = process.env.HOST || '0.0.0.0'
@@ -34,18 +33,10 @@ const MIME = {
   '.ico': 'image/x-icon',
 }
 
-function hashKey(syncKey) {
-  return crypto.createHash('sha256').update(syncKey).digest('hex')
-}
-
-function dataFile(syncKey) {
-  return path.join(DATA_DIR, `${hashKey(syncKey)}.json`)
-}
-
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Key')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 }
 
 async function readBody(req) {
@@ -54,12 +45,10 @@ async function readBody(req) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-async function handleSync(req, res, syncKey) {
-  const file = dataFile(syncKey)
-
+async function handleSync(req, res) {
   if (req.method === 'GET') {
     try {
-      const raw = await fs.readFile(file, 'utf8')
+      const raw = await fs.readFile(DATA_FILE, 'utf8')
       cors(res)
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
       res.end(raw)
@@ -74,8 +63,8 @@ async function handleSync(req, res, syncKey) {
   if (req.method === 'PUT') {
     const body = await readBody(req)
     JSON.parse(body)
-    await fs.mkdir(DATA_DIR, { recursive: true })
-    await fs.writeFile(file, body, 'utf8')
+    await fs.mkdir(path.dirname(DATA_FILE), { recursive: true })
+    await fs.writeFile(DATA_FILE, body, 'utf8')
     cors(res)
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
     res.end(JSON.stringify({ ok: true }))
@@ -147,14 +136,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/sync') {
-    const syncKey = req.headers['x-sync-key']
-    if (!syncKey || typeof syncKey !== 'string' || syncKey.length < 8) {
-      res.writeHead(401, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: '缺少或无效的 X-Sync-Key' }))
-      return
-    }
     try {
-      await handleSync(req, res, syncKey)
+      await handleSync(req, res)
     } catch (err) {
       res.writeHead(400, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'bad request' }))

@@ -26,7 +26,7 @@ export function useAutoSync() {
 
     const settings = getSyncSettings()
     const intervalMs = 5 * 60 * 1000
-    const timer = settings.enabled && settings.autoSync ? window.setInterval(run, intervalMs) : undefined
+    const timer = settings.autoSync ? window.setInterval(run, intervalMs) : undefined
 
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
