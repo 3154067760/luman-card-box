@@ -3,7 +3,7 @@
 set -e
 
 APP_DIR="/var/www/luman_card_box"
-REPO="https://github.com/3154067760/luman-card-box.git"
+REPO="git@github.com:3154067760/luman-card-box.git"
 
 echo "==> 准备目录 $APP_DIR"
 sudo mkdir -p "$APP_DIR"
