@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { exportAll, importAll } from '../lib/cardService'
-import { loadDemoExamples } from '../lib/loadDemo'
+import { loadDemoExamples, loadMLDemoExamples } from '../lib/loadDemo'
 import type { ExportBundle } from '../types/card'
 
 export function SettingsPage() {
@@ -90,7 +90,7 @@ export function SettingsPage() {
       <section className="panel">
         <h2>示例数据</h2>
         <p className="muted">
-          加载一套完整示例（方法论 + 读书记录 + 闪念），已有编号会跳过，可重复点击补全。
+          用法示例（编号 1–3）与机器学习笔记（编号 4–7）可分别加载，已有编号会跳过。
         </p>
         <div className="settings-actions">
           <button
@@ -100,12 +100,26 @@ export function SettingsPage() {
               const { added, skipped } = await loadDemoExamples()
               setMessage(
                 added > 0
-                  ? `已加载 ${added} 条示例（跳过 ${skipped} 条已存在）`
-                  : `示例已齐全，共跳过 ${skipped} 条`,
+                  ? `已加载 ${added} 条用法示例（跳过 ${skipped} 条已存在）`
+                  : `用法示例已齐全，共跳过 ${skipped} 条`,
               )
             }}
           >
-            加载 / 补全示例卡片
+            加载 / 补全用法示例
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={async () => {
+              const { added, skipped } = await loadMLDemoExamples()
+              setMessage(
+                added > 0
+                  ? `已加载 ${added} 条 ML 笔记示例（跳过 ${skipped} 条已存在）`
+                  : `ML 示例已齐全，共跳过 ${skipped} 条`,
+              )
+            }}
+          >
+            加载 / 补全 ML 笔记示例
           </button>
         </div>
       </section>

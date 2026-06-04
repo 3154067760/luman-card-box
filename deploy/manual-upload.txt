@@ -1,0 +1,2 @@
+# 本地打包 dist，用于无法 git pull 时手动上传
+# PowerShell: Compress-Archive -Path dist\* -DestinationPath luman-card-box-dist.zip -Force

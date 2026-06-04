@@ -140,16 +140,16 @@ async function syncLinksFromBody(card: Card): Promise<void> {
     const outgoing = await db.links.where('fromId').equals(card.id).toArray()
     for (const link of outgoing) {
       if (!targetIds.has(link.toId)) {
-        await removeLink(link.fromId, link.toId, true)
+        await removeLink(link.fromId, link.toId, false)
       }
     }
     for (const target of validTargets) {
-      await addLink(card.id, target.id, true)
+      await addLink(card.id, target.id, false)
     }
   })
 }
 
-export async function addLink(fromId: string, toId: string, bidirectional = true): Promise<void> {
+export async function addLink(fromId: string, toId: string, bidirectional = false): Promise<void> {
   if (fromId === toId) return
 
   const exists = await db.links.where({ fromId, toId }).first()
@@ -179,9 +179,12 @@ export async function getForwardLinks(cardId: string): Promise<Card[]> {
 }
 
 export async function getBackwardLinks(cardId: string): Promise<Card[]> {
-  const links = await db.links.where('toId').equals(cardId).toArray()
-  const cards = await Promise.all(links.map((l) => db.cards.get(l.fromId)))
-  return cards.filter((c): c is Card => !!c)
+  const card = await db.cards.get(cardId)
+  if (!card?.number) return []
+
+  const needle = `[[${card.number}]]`
+  const all = await db.cards.where('status').equals('published').toArray()
+  return all.filter((c) => c.id !== cardId && c.body.includes(needle))
 }
 
 export async function searchCards(query: string): Promise<Card[]> {

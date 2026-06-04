@@ -526,3 +526,12 @@ button, input, textarea {
   padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
 }
+
+.ml-quick-start .quick-start-num {
+  background: #2c5282;
+}
+
+[data-theme='dark'] .ml-quick-start .quick-start-num {
+  background: #63b3ed;
+  color: #1a1814;
+}

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CardListItem } from '../components/CardListItem'
 import { quickStartSteps } from '../lib/demoData'
-import { hasDemoCards, loadDemoExamples } from '../lib/loadDemo'
+import { mlQuickStartSteps } from '../lib/mlDemoData'
+import { hasDemoCards, hasMLDemoCards, loadDemoExamples, loadMLDemoExamples } from '../lib/loadDemo'
 import { getRandomCard, getRecentCards } from '../lib/cardService'
 import type { Card } from '../types/card'
 
@@ -11,14 +12,21 @@ export function HomePage() {
   const [random, setRandom] = useState<Card | undefined>()
   const [loading, setLoading] = useState(true)
   const [hasDemo, setHasDemo] = useState(false)
+  const [hasMLDemo, setHasMLDemo] = useState(false)
   const [demoMsg, setDemoMsg] = useState('')
 
   const load = async () => {
     setLoading(true)
-    const [r, rand, demo] = await Promise.all([getRecentCards(), getRandomCard(), hasDemoCards()])
+    const [r, rand, demo, mlDemo] = await Promise.all([
+      getRecentCards(),
+      getRandomCard(),
+      hasDemoCards(),
+      hasMLDemoCards(),
+    ])
     setRecent(r)
     setRandom(rand)
     setHasDemo(demo)
+    setHasMLDemo(mlDemo)
     setLoading(false)
   }
 
@@ -33,6 +41,16 @@ export function HomePage() {
   const handleLoadDemo = async () => {
     const { added } = await loadDemoExamples()
     setDemoMsg(added > 0 ? `已加载 ${added} 条示例` : '示例已在，可直接点击下方步骤浏览')
+    await load()
+  }
+
+  const handleLoadMLDemo = async () => {
+    const { added } = await loadMLDemoExamples()
+    setDemoMsg(
+      added > 0
+        ? `已加载 ${added} 条机器学习示例`
+        : 'ML 示例已在，可直接点击下方步骤浏览',
+    )
     await load()
   }
 
@@ -77,6 +95,38 @@ export function HomePage() {
         </p>
         <ol className="quick-start-list">
           {quickStartSteps.map((s) => (
+            <li key={s.step}>
+              <Link to={s.to} className="quick-start-item">
+                <span className="quick-start-num">{s.step}</span>
+                <span>
+                  <strong>{s.title}</strong>
+                  <small>{s.desc}</small>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="panel quick-start ml-quick-start">
+        <div className="section-head">
+          <h2>机器学习笔记示例</h2>
+          {!hasMLDemo && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={handleLoadMLDemo}>
+              加载 ML 示例
+            </button>
+          )}
+        </div>
+        <p className="muted">
+          14 张正式卡（编号 4–7 主线）+ 2 条 ML 闪念。演示如何用卡片盒记概念、训练、神经网络与论文。
+        </p>
+        <p className="quick-start-extra">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleLoadMLDemo}>
+            加载 / 补全 ML 示例
+          </button>
+        </p>
+        <ol className="quick-start-list">
+          {mlQuickStartSteps.map((s) => (
             <li key={s.step}>
               <Link to={s.to} className="quick-start-item">
                 <span className="quick-start-num">{s.step}</span>

@@ -182,10 +182,10 @@ export function CardPage() {
         </article>
 
         <aside className="card-sidebar">
-          <LinkPanel title="引用 outgoing" cards={forward} />
-          <LinkPanel title="被引用 incoming" cards={backward} />
+          <LinkPanel title="本卡引用" cards={forward} />
+          <LinkPanel title="被其它卡引用" cards={backward} />
           {!forward.length && !backward.length && (
-            <p className="muted sidebar-hint">在正文中写 [[编号]] 与其他卡片建立双向链接</p>
+            <p className="muted sidebar-hint">编辑正文，写入 [[编号]] 建立引用；其它卡写 [[{card.number}]] 会出现在下方</p>
           )}
         </aside>
       </div>
