@@ -8,9 +8,11 @@ import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TreePage } from './pages/TreePage'
 import { useSeedDemo } from './hooks/useSeedDemo'
+import { useAutoSync } from './hooks/useAutoSync'
 
 function App() {
   useSeedDemo()
+  useAutoSync()
 
   return (
     <BrowserRouter>

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { SyncPanel } from '../components/SyncPanel'
 import { exportAll, importAll } from '../lib/cardService'
 import { loadDemoExamples, loadMLDemoExamples } from '../lib/loadDemo'
 import type { ExportBundle } from '../types/card'
@@ -86,6 +87,8 @@ export function SettingsPage() {
         </div>
         {message && <p className="settings-message">{message}</p>}
       </section>
+
+      <SyncPanel onMessage={setMessage} />
 
       <section className="panel">
         <h2>示例数据</h2>

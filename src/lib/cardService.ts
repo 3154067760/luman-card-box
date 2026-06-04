@@ -4,7 +4,8 @@ import {
   allocateSibling,
   nextTopLevel,
 } from './numbering'
-import type { Card, CreateCardMode, ExportBundle } from '../types/card'
+import type { Card, CreateCardMode, ExportBundle, SyncPayload } from '../types/card'
+import { linkEntityId, recordTombstone } from './merge'
 
 function uuid(): string {
   return crypto.randomUUID()
@@ -92,11 +93,29 @@ export async function updateCard(
 }
 
 export async function deleteCard(id: string): Promise<void> {
-  await db.transaction('rw', [db.cards, db.links, db.cardTags], async () => {
+  const [fromLinks, toLinks] = await Promise.all([
+    db.links.where('fromId').equals(id).toArray(),
+    db.links.where('toId').equals(id).toArray(),
+  ])
+  const linkSet = new Map<number, (typeof fromLinks)[0]>()
+  for (const l of [...fromLinks, ...toLinks]) {
+    if (l.id != null) linkSet.set(l.id, l)
+  }
+  const links = [...linkSet.values()]
+
+  await db.transaction('rw', [db.cards, db.links, db.cardTags, db.tombstones], async () => {
+    for (const link of links) {
+      await recordTombstone('link', linkEntityId(link.fromId, link.toId))
+    }
+    const tagRels = await db.cardTags.where('cardId').equals(id).toArray()
+    for (const rel of tagRels) {
+      await recordTombstone('cardTag', linkEntityId(rel.cardId, rel.tagId))
+    }
     await db.links.where('fromId').equals(id).delete()
     await db.links.where('toId').equals(id).delete()
     await db.cardTags.where('cardId').equals(id).delete()
     await db.cards.delete(id)
+    await recordTombstone('card', id)
   })
 }
 
@@ -209,11 +228,18 @@ export async function getRandomCard(): Promise<Card | undefined> {
 }
 
 export async function exportAll(): Promise<ExportBundle> {
-  const [cards, links, tags, cardTags] = await Promise.all([
+  const payload = await exportSyncPayload()
+  const { tombstones: _, deviceId: __, ...bundle } = payload
+  return bundle
+}
+
+export async function exportSyncPayload(): Promise<SyncPayload> {
+  const [cards, links, tags, cardTags, tombstones] = await Promise.all([
     db.cards.toArray(),
     db.links.toArray(),
     db.tags.toArray(),
     db.cardTags.toArray(),
+    db.tombstones.toArray(),
   ])
   return {
     version: 1,
@@ -222,6 +248,7 @@ export async function exportAll(): Promise<ExportBundle> {
     links,
     tags,
     cardTags,
+    tombstones,
   }
 }
 

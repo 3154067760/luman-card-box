@@ -1,0 +1,9 @@
+{
+  "name": "luman-card-box-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node index.mjs"
+  }
+}

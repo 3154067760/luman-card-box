@@ -40,3 +40,28 @@ export interface ExportBundle {
 }
 
 export type CreateCardMode = 'top' | 'sibling' | 'child'
+
+export type EntityType = 'card' | 'link' | 'tag' | 'cardTag'
+
+/** 删除记录，用于跨设备同步删除操作 */
+export interface Tombstone {
+  id: string
+  entityType: EntityType
+  entityId: string
+  deletedAt: number
+}
+
+export interface SyncPayload extends ExportBundle {
+  tombstones: Tombstone[]
+  deviceId?: string
+}
+
+export interface SyncSettings {
+  enabled: boolean
+  syncUrl: string
+  syncKey: string
+  autoSync: boolean
+  lastSyncAt: number
+  lastSyncStatus: 'ok' | 'error' | ''
+  lastSyncMessage: string
+}
