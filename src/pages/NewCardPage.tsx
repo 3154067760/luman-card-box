@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { WikiLinkHint } from '../components/CardBody'
 import { allocateNumber, createCard } from '../lib/cardService'
-import { schedulePushSync } from '../lib/syncService'
+import { schedulePushSync, syncNow } from '../lib/syncService'
 import type { CreateCardMode } from '../types/card'
 
 const modes: { value: CreateCardMode; label: string; desc: string }[] = [
@@ -77,7 +77,11 @@ export function NewCardPage() {
         source,
         note,
       })
-      schedulePushSync()
+      try {
+        await syncNow()
+      } catch {
+        schedulePushSync()
+      }
       navigate(`/card/${encodeURIComponent(card.number)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败')
@@ -153,7 +157,7 @@ export function NewCardPage() {
 
         <div className="form-actions">
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? '创建中…' : '创建卡片'}
+            {saving ? '创建并同步…' : '创建卡片'}
           </button>
         </div>
         {error && <p className="sync-hint err">{error}</p>}

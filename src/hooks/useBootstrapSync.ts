@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { db } from '../db'
 import { getSyncSettings } from '../lib/syncSettings'
-import { bootstrapFromServer, tryAutoSync } from '../lib/syncService'
+import { bootstrapFromServer, syncNow, tryAutoSync } from '../lib/syncService'
 
 /** 启动时从服务器拉数据；之后自动同步 */
 export function useBootstrapSync() {
@@ -25,6 +25,13 @@ export function useBootstrapSync() {
     const timer = window.setTimeout(async () => {
       const count = await db.cards.count()
       await bootstrapFromServer(count === 0)
+      if (count > 0) {
+        try {
+          await syncNow()
+        } catch {
+          /* 启动合并失败不阻塞使用，后续保存会再试 */
+        }
+      }
     }, 1500)
 
     const onVisible = () => {

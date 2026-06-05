@@ -42,7 +42,7 @@ export function SyncPanel({ onMessage }: SyncPanelProps) {
     <section className="panel">
       <h2>同步到服务器</h2>
       <p className="muted">
-        本机 IndexedDB 仍是日常读写来源。点「同步到服务器」会把卡片与服务器上的数据<strong>自动合并</strong>（较新的覆盖较旧的），手机 / 电脑打开同一网站即可互通，无需密钥。
+        本机 IndexedDB 仍是日常读写来源。保存卡片后会<strong>自动上传</strong>到服务器；也可手动点「同步到服务器」合并多设备数据（较新的覆盖较旧的），无需密钥。
       </p>
 
       {serverOk === false && (
@@ -51,7 +51,7 @@ export function SyncPanel({ onMessage }: SyncPanelProps) {
       {serverOk === true && <p className="sync-hint ok">服务器在线，可以同步</p>}
 
       <label className="field sync-toggle">
-        <span>打开页面时自动同步</span>
+        <span>后台定时同步（每 5 分钟）</span>
         <input
           type="checkbox"
           checked={settings.autoSync}

@@ -89,15 +89,30 @@ export async function syncNow(): Promise<{ merged: SyncPayload; cardCount: numbe
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 
-/** 本地改动后延迟上传 */
+/** 本地改动后延迟上传到服务器（不依赖「自动同步」开关） */
 export function schedulePushSync(): void {
   if (typeof window === 'undefined') return
   if (pushTimer) clearTimeout(pushTimer)
   pushTimer = window.setTimeout(() => {
-    tryAutoSync().catch(() => {})
-  }, 2000)
+    pushLocalChanges().catch(() => {})
+  }, 1500)
 }
 
+/** 保存/删除后上传；失败时写入设置页状态 */
+async function pushLocalChanges(): Promise<void> {
+  try {
+    const ok = await checkSyncHealth()
+    if (!ok) return
+    await syncNow()
+  } catch (err) {
+    saveSyncSettings({
+      lastSyncStatus: 'error',
+      lastSyncMessage: err instanceof Error ? err.message : '上传失败',
+    })
+  }
+}
+
+/** 定时 / 切回页面时的后台同步（需开启自动同步） */
 export async function tryAutoSync(): Promise<void> {
   const settings = getSyncSettings()
   if (!settings.autoSync) return
