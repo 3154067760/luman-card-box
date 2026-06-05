@@ -7,8 +7,10 @@ import {
 import type { Card, CreateCardMode, ExportBundle, SyncPayload } from '../types/card'
 import { linkEntityId, recordTombstone } from './merge'
 
+import { newId } from './uuid'
+
 function uuid(): string {
-  return crypto.randomUUID()
+  return newId()
 }
 
 export async function getAllPublishedNumbers(): Promise<string[]> {

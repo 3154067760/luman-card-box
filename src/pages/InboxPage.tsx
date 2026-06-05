@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createCard, deleteCard, getInboxCards, promoteInboxCard, updateCard } from '../lib/cardService'
+import { schedulePushSync } from '../lib/syncService'
 import type { Card, CreateCardMode } from '../types/card'
 
 export function InboxPage() {
@@ -8,6 +9,8 @@ export function InboxPage() {
   const [items, setItems] = useState<Card[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
+  const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -21,10 +24,23 @@ export function InboxPage() {
 
   const addFlash = async () => {
     const text = draft.trim()
-    if (!text) return
-    await createCard({ mode: 'top', body: text, status: 'inbox' })
-    setDraft('')
-    load()
+    if (!text) {
+      setMsg('请先输入内容')
+      return
+    }
+    setSaving(true)
+    setMsg('')
+    try {
+      await createCard({ mode: 'top', body: text, status: 'inbox' })
+      setDraft('')
+      await load()
+      schedulePushSync()
+      setMsg('已存入闪念')
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const promote = async (id: string, mode: CreateCardMode) => {
@@ -37,19 +53,34 @@ export function InboxPage() {
       if (!refNumber.trim()) return
     }
 
-    const published = await promoteInboxCard(id, mode, refNumber?.trim())
-    navigate(`/card/${published.number}`)
+    try {
+      const published = await promoteInboxCard(id, mode, refNumber?.trim())
+      schedulePushSync()
+      navigate(`/card/${published.number}`)
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : '转正失败')
+    }
   }
 
   const saveEdit = async (id: string, body: string) => {
-    await updateCard(id, { body })
-    load()
+    try {
+      await updateCard(id, { body })
+      await load()
+      schedulePushSync()
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : '保存失败')
+    }
   }
 
   const remove = async (id: string) => {
     if (!confirm('删除这条闪念？')) return
-    await deleteCard(id)
-    load()
+    try {
+      await deleteCard(id)
+      await load()
+      schedulePushSync()
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : '删除失败')
+    }
   }
 
   return (
@@ -67,10 +98,11 @@ export function InboxPage() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
-          <button type="button" className="btn btn-primary" onClick={addFlash}>
-            存入闪念
+          <button type="button" className="btn btn-primary" disabled={saving} onClick={addFlash}>
+            {saving ? '保存中…' : '存入闪念'}
           </button>
         </div>
+        {msg && <p className={msg.includes('失败') ? 'sync-hint err' : 'settings-message'}>{msg}</p>}
       </section>
 
       <section className="panel">

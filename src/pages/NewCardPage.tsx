@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { WikiLinkHint } from '../components/CardBody'
 import { allocateNumber, createCard } from '../lib/cardService'
+import { schedulePushSync } from '../lib/syncService'
 import type { CreateCardMode } from '../types/card'
 
 const modes: { value: CreateCardMode; label: string; desc: string }[] = [
@@ -66,7 +67,10 @@ export function NewCardPage() {
         source,
         note,
       })
+      schedulePushSync()
       navigate(`/card/${card.number}`)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '创建失败')
     } finally {
       setSaving(false)
     }

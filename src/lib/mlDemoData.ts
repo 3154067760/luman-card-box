@@ -1,4 +1,5 @@
 import type { Card } from '../types/card'
+import { newId } from './uuid'
 
 function makeCard(
   t: { value: number },
@@ -9,7 +10,7 @@ function makeCard(
 ): Card {
   const now = t.value++
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     number,
     title,
     body,
@@ -208,7 +209,7 @@ export function buildMLDemoInbox(): Card[] {
   const now = Date.now()
   return [
     {
-      id: crypto.randomUUID(),
+      id: newId(),
       number: '',
       title: '',
       body: '💡 ML 闪念：试着用 lr=3e-4 训一个小 CNN 在 CIFAR-10，看验证曲线是否过拟合——还没想好放哪条编号线下，先搁这。',
@@ -219,7 +220,7 @@ export function buildMLDemoInbox(): Card[] {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: newId(),
       number: '',
       title: '',
       body: '💡 ML 闪念：搞不清 BatchNorm 在 train/eval 模式差别 → 查完写成正式卡，可挂在 [[6b]] 下面当分支。',

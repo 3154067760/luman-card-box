@@ -10,6 +10,7 @@ import {
   getForwardLinks,
   updateCard,
 } from '../lib/cardService'
+import { schedulePushSync } from '../lib/syncService'
 import type { Card } from '../types/card'
 
 export function CardPage() {
@@ -49,23 +50,39 @@ export function CardPage() {
   const save = async () => {
     if (!card) return
     setSaving(true)
-    const updated = await updateCard(card.id, draft)
-    setCard(updated)
-    setEditing(false)
-    setSaving(false)
-    await load()
+    try {
+      const updated = await updateCard(card.id, draft)
+      setCard(updated)
+      setEditing(false)
+      schedulePushSync()
+      await load()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const remove = async () => {
     if (!card) return
     if (!confirm(`确定删除卡片 ${card.number}？此操作不可恢复。`)) return
-    await deleteCard(card.id)
-    navigate('/tree')
+    try {
+      await deleteCard(card.id)
+      schedulePushSync()
+      navigate('/tree')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '删除失败')
+    }
   }
 
   const spawn = async (mode: 'sibling' | 'child') => {
-    const created = await createCard({ mode, refNumber: number })
-    navigate(`/card/${created.number}`)
+    try {
+      const created = await createCard({ mode, refNumber: number })
+      schedulePushSync()
+      navigate(`/card/${created.number}`)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '创建失败')
+    }
   }
 
   if (notFound) {

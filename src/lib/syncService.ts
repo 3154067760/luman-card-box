@@ -69,6 +69,16 @@ export async function syncNow(): Promise<{ merged: SyncPayload; cardCount: numbe
   return { merged, cardCount: merged.cards.length }
 }
 
+let pushTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 本地改动后延迟上传，避免阻塞 UI */
+export function schedulePushSync(): void {
+  if (typeof window === 'undefined') return
+  if (pushTimer) clearTimeout(pushTimer)
+  pushTimer = window.setTimeout(() => {
+    tryAutoSync().catch(() => {})
+  }, 1200)
+}
 export async function tryAutoSync(): Promise<void> {
   const settings = getSyncSettings()
   if (!settings.autoSync) return

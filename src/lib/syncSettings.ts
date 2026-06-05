@@ -1,4 +1,5 @@
 import type { SyncSettings } from '../types/card'
+import { newId } from './uuid'
 
 const STORAGE_KEY = 'zettelkasten-sync-settings'
 const DEVICE_KEY = 'zettelkasten-device-id'
@@ -30,7 +31,7 @@ export function saveSyncSettings(patch: Partial<SyncSettings>): SyncSettings {
 export function getDeviceId(): string {
   let id = localStorage.getItem(DEVICE_KEY)
   if (!id) {
-    id = crypto.randomUUID()
+    id = newId()
     localStorage.setItem(DEVICE_KEY, id)
   }
   return id

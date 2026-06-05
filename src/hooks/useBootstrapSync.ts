@@ -23,6 +23,8 @@ export function useBootstrapSync() {
     ready.current = true
 
     ;(async () => {
+      // 稍延后同步，避免阻塞首屏交互
+      await new Promise((r) => setTimeout(r, 800))
       const count = await db.cards.count()
       await bootstrapFromServer(count === 0)
     })()

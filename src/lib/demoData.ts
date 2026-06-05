@@ -1,4 +1,5 @@
 import type { Card } from '../types/card'
+import { newId } from './uuid'
 
 /** 示例卡片：演示编号、链接、闪念的典型用法 */
 export function buildDemoCards(): Card[] {
@@ -11,7 +12,7 @@ export function buildDemoCards(): Card[] {
     body: string,
     extra?: Partial<Pick<Card, 'source' | 'note' | 'status'>>,
   ): Card => ({
-    id: crypto.randomUUID(),
+    id: newId(),
     number,
     title,
     body,
@@ -141,7 +142,7 @@ export function buildDemoInbox(): Card[] {
   const now = Date.now()
   return [
     {
-      id: crypto.randomUUID(),
+      id: newId(),
       number: '',
       title: '',
       body: '💡 闪念示例：也许「卡片盒」也可以用来整理旅行见闻，不必等想清楚了再编号——先丢进闪念区。',
@@ -152,7 +153,7 @@ export function buildDemoInbox(): Card[] {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: newId(),
       number: '',
       title: '',
       body: '💡 闪念示例：查一下卢曼一生大约写了多少张卡片（据说九万张？）',
