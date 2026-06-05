@@ -6,6 +6,7 @@ import {
 } from './numbering'
 import type { Card, CreateCardMode, ExportBundle, SyncPayload } from '../types/card'
 import { linkEntityId, recordTombstone } from './merge'
+import { waitForSyncIdle } from './syncService'
 
 import { newId } from './uuid'
 
@@ -23,7 +24,8 @@ export async function getCardById(id: string): Promise<Card | undefined> {
 }
 
 export async function getCardByNumber(number: string): Promise<Card | undefined> {
-  return db.cards.where({ number, status: 'published' }).first()
+  const cards = await db.cards.where('number').equals(number).toArray()
+  return cards.find((c) => c.status === 'published')
 }
 
 export async function getRecentCards(limit = 12): Promise<Card[]> {
@@ -56,6 +58,8 @@ export async function createCard(input: {
   note?: string
   status?: Card['status']
 }): Promise<Card> {
+  await waitForSyncIdle()
+
   const now = Date.now()
   const status = input.status ?? 'published'
   const number =
@@ -81,6 +85,8 @@ export async function updateCard(
   id: string,
   patch: Partial<Pick<Card, 'title' | 'body' | 'source' | 'note'>>,
 ): Promise<Card> {
+  await waitForSyncIdle()
+
   const card = await db.cards.get(id)
   if (!card) throw new Error('卡片不存在')
 
@@ -95,6 +101,8 @@ export async function updateCard(
 }
 
 export async function deleteCard(id: string): Promise<void> {
+  await waitForSyncIdle()
+
   const [fromLinks, toLinks] = await Promise.all([
     db.links.where('fromId').equals(id).toArray(),
     db.links.where('toId').equals(id).toArray(),

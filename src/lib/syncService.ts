@@ -10,6 +10,22 @@ export class SyncError extends Error {
   }
 }
 
+/** 同步进行中时，本地写入需等待，避免被 applySyncPayload 清空 */
+let syncTail: Promise<void> = Promise.resolve()
+
+export function waitForSyncIdle(): Promise<void> {
+  return syncTail
+}
+
+function runWithSyncLock<T>(fn: () => Promise<T>): Promise<T> {
+  const task = syncTail.then(fn)
+  syncTail = task.then(
+    () => undefined,
+    () => undefined,
+  )
+  return task
+}
+
 async function fetchRemote(base: string): Promise<SyncPayload | null> {
   const res = await fetch(`${base}/api/sync`)
   if (!res.ok) {
@@ -46,39 +62,42 @@ export async function checkSyncHealth(base?: string): Promise<boolean> {
 
 /** 拉取服务器 → 与本地合并 → 写回本地 → 上传合并结果 */
 export async function syncNow(): Promise<{ merged: SyncPayload; cardCount: number }> {
-  const base = getSyncApiBase()
-  if (!base) throw new SyncError('无法确定服务器地址')
+  return runWithSyncLock(async () => {
+    const base = getSyncApiBase()
+    if (!base) throw new SyncError('无法确定服务器地址')
 
-  const local = await exportSyncPayload()
-  local.deviceId = getDeviceId()
+    const local = await exportSyncPayload()
+    local.deviceId = getDeviceId()
 
-  const remote = await fetchRemote(base)
-  const merged = remote?.cards?.length ? mergeSyncPayloads(local, remote) : local
-  merged.deviceId = getDeviceId()
-  merged.exportedAt = new Date().toISOString()
+    const remote = await fetchRemote(base)
+    const merged = remote?.cards?.length ? mergeSyncPayloads(local, remote) : local
+    merged.deviceId = getDeviceId()
+    merged.exportedAt = new Date().toISOString()
 
-  await applySyncPayload(merged)
-  await pushRemote(base, merged)
+    await applySyncPayload(merged)
+    await pushRemote(base, merged)
 
-  saveSyncSettings({
-    lastSyncAt: Date.now(),
-    lastSyncStatus: 'ok',
-    lastSyncMessage: `已同步 ${merged.cards.length} 张卡片`,
+    saveSyncSettings({
+      lastSyncAt: Date.now(),
+      lastSyncStatus: 'ok',
+      lastSyncMessage: `已同步 ${merged.cards.length} 张卡片`,
+    })
+
+    return { merged, cardCount: merged.cards.length }
   })
-
-  return { merged, cardCount: merged.cards.length }
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 
-/** 本地改动后延迟上传，避免阻塞 UI */
+/** 本地改动后延迟上传 */
 export function schedulePushSync(): void {
   if (typeof window === 'undefined') return
   if (pushTimer) clearTimeout(pushTimer)
   pushTimer = window.setTimeout(() => {
     tryAutoSync().catch(() => {})
-  }, 1200)
+  }, 2000)
 }
+
 export async function tryAutoSync(): Promise<void> {
   const settings = getSyncSettings()
   if (!settings.autoSync) return
@@ -95,16 +114,18 @@ export async function tryAutoSync(): Promise<void> {
   }
 }
 
-/** 启动时：本地为空则直接从服务器加载；否则合并同步 */
+/** 启动时：仅在本机无数据时从服务器加载，不再每次打开都全量覆盖 */
 export async function bootstrapFromServer(localEmpty: boolean): Promise<void> {
   const base = getSyncApiBase()
   if (!base) return
 
-  try {
-    const ok = await checkSyncHealth(base)
-    if (!ok) return
+  return runWithSyncLock(async () => {
+    try {
+      const ok = await checkSyncHealth(base)
+      if (!ok) return
 
-    if (localEmpty) {
+      if (!localEmpty) return
+
       const remote = await fetchRemote(base)
       if (remote && remote.cards.length > 0) {
         await applySyncPayload({ ...remote, tombstones: remote.tombstones ?? [] })
@@ -113,15 +134,12 @@ export async function bootstrapFromServer(localEmpty: boolean): Promise<void> {
           lastSyncStatus: 'ok',
           lastSyncMessage: `已从服务器加载 ${remote.cards.length} 张卡片`,
         })
-        return
       }
+    } catch (err) {
+      saveSyncSettings({
+        lastSyncStatus: 'error',
+        lastSyncMessage: err instanceof Error ? err.message : '同步失败',
+      })
     }
-
-    await syncNow()
-  } catch (err) {
-    saveSyncSettings({
-      lastSyncStatus: 'error',
-      lastSyncMessage: err instanceof Error ? err.message : '同步失败',
-    })
-  }
+  })
 }

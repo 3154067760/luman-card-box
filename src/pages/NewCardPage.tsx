@@ -25,14 +25,19 @@ export function NewCardPage() {
   const [source, setSource] = useState('')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const refreshPreview = async () => {
-    if (mode === 'top') {
-      setPreviewNumber(await allocateNumber('top'))
-    } else if (refNumber.trim()) {
-      setPreviewNumber(await allocateNumber(mode, refNumber.trim()))
-    } else {
-      setPreviewNumber('')
+    try {
+      if (mode === 'top') {
+        setPreviewNumber(await allocateNumber('top'))
+      } else if (refNumber.trim()) {
+        setPreviewNumber(await allocateNumber(mode, refNumber.trim()))
+      } else {
+        setPreviewNumber('')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '编号预览失败')
     }
   }
 
@@ -57,20 +62,25 @@ export function NewCardPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!body.trim()) {
+      setError('请填写正文')
+      return
+    }
     setSaving(true)
+    setError('')
     try {
       const card = await createCard({
         mode,
         refNumber: mode === 'top' ? undefined : refNumber.trim(),
         title,
-        body,
+        body: body.trim(),
         source,
         note,
       })
       schedulePushSync()
-      navigate(`/card/${card.number}`)
+      navigate(`/card/${encodeURIComponent(card.number)}`)
     } catch (err) {
-      alert(err instanceof Error ? err.message : '创建失败')
+      setError(err instanceof Error ? err.message : '创建失败')
     } finally {
       setSaving(false)
     }
@@ -146,6 +156,7 @@ export function NewCardPage() {
             {saving ? '创建中…' : '创建卡片'}
           </button>
         </div>
+        {error && <p className="sync-hint err">{error}</p>}
       </form>
     </div>
   )

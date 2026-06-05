@@ -22,12 +22,10 @@ export function useBootstrapSync() {
     if (ready.current) return
     ready.current = true
 
-    ;(async () => {
-      // 稍延后同步，避免阻塞首屏交互
-      await new Promise((r) => setTimeout(r, 800))
+    const timer = window.setTimeout(async () => {
       const count = await db.cards.count()
       await bootstrapFromServer(count === 0)
-    })()
+    }, 1500)
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') runSync()
@@ -35,11 +33,12 @@ export function useBootstrapSync() {
     document.addEventListener('visibilitychange', onVisible)
 
     const settings = getSyncSettings()
-    const timer = settings.autoSync ? window.setInterval(runSync, 5 * 60 * 1000) : undefined
+    const interval = settings.autoSync ? window.setInterval(runSync, 5 * 60 * 1000) : undefined
 
     return () => {
+      window.clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisible)
-      if (timer) window.clearInterval(timer)
+      if (interval) window.clearInterval(interval)
     }
   }, [])
 }
