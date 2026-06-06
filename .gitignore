@@ -14,6 +14,17 @@ dist-ssr
 *.zip
 server/data
 
+# Capacitor / Android
+android/.gradle
+android/.idea
+android/local.properties
+android/app/build
+android/build
+android/captures
+*.apk
+*.aab
+.env.app.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

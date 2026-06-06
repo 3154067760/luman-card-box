@@ -38,6 +38,8 @@ export function getDeviceId(): string {
 }
 
 export function getSyncApiBase(): string {
+  const envBase = import.meta.env.VITE_SYNC_API_BASE?.trim()
+  if (envBase) return envBase.replace(/\/$/, '')
   if (typeof window !== 'undefined') return window.location.origin
   return ''
 }

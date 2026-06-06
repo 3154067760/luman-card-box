@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { InstallAppPanel } from '../components/InstallAppPanel'
 import { SyncPanel } from '../components/SyncPanel'
 import { exportAll, importAll } from '../lib/cardService'
 import { loadDemoExamples, loadMLDemoExamples } from '../lib/loadDemo'
@@ -89,6 +90,8 @@ export function SettingsPage() {
       </section>
 
       <SyncPanel onMessage={setMessage} />
+
+      <InstallAppPanel />
 
       <section className="panel">
         <h2>示例数据</h2>
